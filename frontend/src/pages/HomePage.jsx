@@ -1,0 +1,20 @@
+import React from "react";
+import {
+    HeroSection,
+    FeaturesSection,
+    HowItWorksSection,
+    AnimatedBackdrop,
+} from "../components";
+const HomePage = () => {
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 relative">
+            <AnimatedBackdrop />
+            <div className="max-w-6xl mx-auto px-6 py-16 relative z-10">
+                <HeroSection />
+                <FeaturesSection />
+                <HowItWorksSection />
+            </div>
+        </div>
+    );
+};
+export default HomePage;
