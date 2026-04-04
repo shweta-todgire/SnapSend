@@ -29,15 +29,13 @@ class WebRTCService {
                 import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
             console.log(`Connecting to signaling server at: ${backendUrl}`);
             this.socket = io(backendUrl, {
-                transports: ["websocket", "polling"],
-                timeout: 10000,
-                forceNew: true,
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5,
-                upgrade: true,
-            });
-            this.socket.on("connect", () => {
+                    transports: ["websocket"], // 🔥 important
+                    withCredentials: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    timeout: 10000,
+                });
+                this.socket.on("connect", () => {
                 console.log("Connected to signaling server");
                 this.setupSocketListeners();
                 resolve(this.socket);
