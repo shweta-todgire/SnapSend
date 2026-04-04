@@ -250,6 +250,10 @@ io.on("connection", (socket) => {
     });
 });
 
+app.get("/", (req, res) => {
+    res.status(200).send("🚀 SnapSend backend is running");
+});
+
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, "0.0.0.0", () => {
     console.log(`SnapSend signaling server running on port ${PORT}`);
