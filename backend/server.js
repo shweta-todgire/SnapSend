@@ -252,7 +252,7 @@ io.on("connection", (socket) => {
 
 const path = require("path");
 
-const frontendPath = path.join(__dirname, "frontend", "dist");
+const frontendPath = path.join(__dirname, "..", "frontend", "dist");
 
 // Serve static files
 app.use(express.static(frontendPath));
