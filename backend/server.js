@@ -258,7 +258,7 @@ const frontendPath = path.join(__dirname, "frontend", "dist");
 app.use(express.static(frontendPath));
 
 // Serve React app
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
 });
 const PORT = process.env.PORT || 3001;
