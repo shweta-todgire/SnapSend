@@ -26,7 +26,7 @@ class WebRTCService {
     connectToSignalingServer() {
         return new Promise((resolve, reject) => {
             const backendUrl =
-                import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+                import.meta.env.VITE_BACKEND_URL || "https://snapsend.onrender.com";
             console.log(`Connecting to signaling server at: ${backendUrl}`);
             this.socket = io(backendUrl, {
                     transports: ["websocket"], // 🔥 important
