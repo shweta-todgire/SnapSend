@@ -4,7 +4,7 @@ import QrScanner from "qr-scanner";
 import qrWorker from "qr-scanner/qr-scanner-worker.min.js?url";
 import { toast } from "react-toastify";
 
-// 🔥 IMPORTANT: सेट worker path (production fix)
+// 🔥 VERY IMPORTANT (fix for production)
 QrScanner.WORKER_PATH = qrWorker;
 
 const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
@@ -15,34 +15,40 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let timer;
+    if (!isOpen) return;
 
-    if (isOpen) {
-      // ⏳ Delay to ensure video element is mounted
-      timer = setTimeout(() => {
-        if (videoRef.current) {
-          startScanner();
-        } else {
-          console.log("Video element not ready");
-        }
-      }, 300);
-    }
+    let interval;
+
+    // ⏳ Wait until video element is mounted
+    interval = setInterval(() => {
+      if (videoRef.current) {
+        startScanner();
+        clearInterval(interval);
+      }
+    }, 100);
 
     return () => {
-      clearTimeout(timer);
+      clearInterval(interval);
       stopScanner();
     };
   }, [isOpen]);
 
   const startScanner = async () => {
+    // 🛑 Prevent null error
+    if (!videoRef.current) {
+      console.log("Video not ready yet");
+      return;
+    }
+
     try {
       setError(null);
       setIsScanning(true);
 
-      // 🛑 Prevent multiple instances
+      // 🛑 Clean old instance
       if (scannerRef.current) {
         scannerRef.current.stop();
         scannerRef.current.destroy();
+        scannerRef.current = null;
       }
 
       scannerRef.current = new QrScanner(
@@ -68,9 +74,9 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
       );
 
       await scannerRef.current.start();
-      console.log("Camera started successfully");
+      console.log("✅ Camera started");
     } catch (err) {
-      console.error("FULL ERROR:", err);
+      console.error("❌ FULL ERROR:", err);
       setIsScanning(false);
 
       if (err.name === "NotAllowedError") {
@@ -78,7 +84,7 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
       } else if (err.name === "NotFoundError") {
         setError("No camera found on this device.");
       } else if (err.name === "NotReadableError") {
-        setError("Camera is already in use by another app.");
+        setError("Camera is already in use.");
       } else {
         setError(err.message || "Camera not available.");
       }
@@ -146,6 +152,7 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
                   playsInline
                   muted
                 />
+
                 {isScanning && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-40 h-40 border-2 border-blue-600 rounded-lg animate-pulse"></div>
