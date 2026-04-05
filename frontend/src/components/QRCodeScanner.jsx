@@ -4,7 +4,7 @@ import QrScanner from "qr-scanner";
 import qrWorker from "qr-scanner/qr-scanner-worker.min.js?url";
 import { toast } from "react-toastify";
 
-// 🔥 VERY IMPORTANT (fix for production)
+// 🔥 REQUIRED for production (Vite/Render)
 QrScanner.WORKER_PATH = qrWorker;
 
 const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
@@ -34,28 +34,39 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
   }, [isOpen]);
 
   const startScanner = async () => {
-    // 🛑 Prevent null error
-    if (!videoRef.current) {
-      console.log("Video not ready yet");
-      return;
-    }
+    if (!videoRef.current) return;
 
     try {
       setError(null);
       setIsScanning(true);
 
-      // 🛑 Clean old instance
+      // 🔍 Check available cameras
+      const cameras = await QrScanner.listCameras(true);
+      console.log("Available cameras:", cameras);
+
+      if (!cameras.length) {
+        setError("No camera found on this device.");
+        setIsScanning(false);
+        return;
+      }
+
+      // 🛑 Cleanup old scanner
       if (scannerRef.current) {
         scannerRef.current.stop();
         scannerRef.current.destroy();
         scannerRef.current = null;
       }
 
+      // 🎯 Select camera (prefer back camera if exists)
+      const backCamera =
+        cameras.find((cam) =>
+          cam.label.toLowerCase().includes("back")
+        ) || cameras[0];
+
       scannerRef.current = new QrScanner(
         videoRef.current,
         (result) => {
           const code = result.data.trim().toUpperCase();
-
           console.log("Scanned:", code);
 
           if (code.length === 8 && /^[A-Z0-9]+$/.test(code)) {
@@ -67,9 +78,9 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
           }
         },
         {
+          preferredCamera: backCamera.id,
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          preferredCamera: "environment",
         }
       );
 
@@ -82,7 +93,7 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
       if (err.name === "NotAllowedError") {
         setError("Camera permission denied. Please allow access.");
       } else if (err.name === "NotFoundError") {
-        setError("No camera found on this device.");
+        setError("No camera found.");
       } else if (err.name === "NotReadableError") {
         setError("Camera is already in use.");
       } else {
