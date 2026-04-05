@@ -1,30 +1,57 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QrScanner from "qr-scanner";
+import qrWorker from "qr-scanner/qr-scanner-worker.min.js?url";
 import { toast } from "react-toastify";
+
+// 🔥 IMPORTANT: सेट worker path (production fix)
+QrScanner.WORKER_PATH = qrWorker;
 
 const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
+
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let timer;
+
     if (isOpen) {
-      startScanner();
+      // ⏳ Delay to ensure video element is mounted
+      timer = setTimeout(() => {
+        if (videoRef.current) {
+          startScanner();
+        } else {
+          console.log("Video element not ready");
+        }
+      }, 300);
     }
-    return () => stopScanner();
+
+    return () => {
+      clearTimeout(timer);
+      stopScanner();
+    };
   }, [isOpen]);
 
   const startScanner = async () => {
     try {
-      setIsScanning(true);
       setError(null);
+      setIsScanning(true);
+
+      // 🛑 Prevent multiple instances
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+      }
 
       scannerRef.current = new QrScanner(
         videoRef.current,
         (result) => {
           const code = result.data.trim().toUpperCase();
+
+          console.log("Scanned:", code);
+
           if (code.length === 8 && /^[A-Z0-9]+$/.test(code)) {
             onScan(code);
             stopScanner();
@@ -41,21 +68,23 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
       );
 
       await scannerRef.current.start();
-    } catch (error) {
-      console.error("Camera error:", error);
+      console.log("Camera started successfully");
+    } catch (err) {
+      console.error("FULL ERROR:", err);
       setIsScanning(false);
 
-      if (error.name === "NotAllowedError") {
-        setError(
-          "Camera permission denied. Please allow access and try again."
-        );
-      } else if (error.name === "NotFoundError") {
+      if (err.name === "NotAllowedError") {
+        setError("Camera permission denied. Please allow access.");
+      } else if (err.name === "NotFoundError") {
         setError("No camera found on this device.");
+      } else if (err.name === "NotReadableError") {
+        setError("Camera is already in use by another app.");
       } else {
-        setError("Camera not available. Please enter code manually.");
+        setError(err.message || "Camera not available.");
       }
     }
   };
+
   const stopScanner = () => {
     if (scannerRef.current) {
       scannerRef.current.stop();
@@ -98,8 +127,10 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
 
             {error ? (
               <div className="bg-red-50 rounded-xl p-6 mb-6">
-                <div className="text-4xl mb-4">�</div>
-                <p className="text-red-600 text-sm font-medium mb-2">{error}</p>
+                <div className="text-4xl mb-4">⚠️</div>
+                <p className="text-red-600 text-sm font-medium mb-2">
+                  {error}
+                </p>
                 <button
                   onClick={startScanner}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
@@ -123,14 +154,12 @@ const QRCodeScanner = ({ isOpen, onClose, onScan }) => {
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={handleClose}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </motion.div>
       </motion.div>
